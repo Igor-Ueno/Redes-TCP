@@ -91,7 +91,7 @@ class Conexao:
 
         self.cwnd = 1
         self.window_occupation = 0
-        self.data = bytearray()
+        self.remaining_data = bytearray()
         self.count_seg = 0
         self.recv_acks = 0
 
@@ -146,7 +146,10 @@ class Conexao:
             print("\033[91m {}\033[00m" .format("ACK recebido"))
 
             self.ack_no = seq_no
-            self.seq_no = ack_no       
+            self.seq_no = ack_no
+
+            # print("\033[91m {}\033[00m" .format(f"-> ACK = {self.ack_no}\n -> SEQ = {self.seq_no}"))
+            # print("\033[91m {}\033[00m" .format(f"-> {self.ack_no / MSS}\n -> {self.seq_no / MSS}"))
 
             if self.not_acked_segments:
                 # time_send_seq = self.not_acked_segments[0][2]
@@ -167,12 +170,12 @@ class Conexao:
 
                 # self.recv_acks += 1
                 print("\033[91m {}\033[00m" .format(f"AKCs recebidos -> {self.recv_acks}"))
-                print("\033[91m {}\033[00m" .format(f"Tamanho dos dados que ainda precisam ser enviados -> {len(self.data)}"))
+                print("\033[91m {}\033[00m" .format(f"Tamanho dos dados que ainda precisam ser enviados -> {len(self.remaining_data)} ou {len(self.remaining_data) / MSS}"))
                 # self.cwnd += 1
-                # if self.data != b'':
-                # if len(self.data):
+                # if self.remaining_data != b'':
+                # if len(self.remaining_data):
                 #     print("\033[91m {}\033[00m" .format("Ainda faltam dados para serem enviados!"))
-                #     self.enviar(self.data)
+                #     self.enviar(self.remaining_data)
 
             # se ainda existirem pacotes aguardando confirmação solta o timer
             if self.not_acked_segments:
@@ -187,13 +190,14 @@ class Conexao:
             # if self.recv_acks == self.cwnd:
             #     self.recv_acks = 0
             #     self.cwnd += 1
-            #     print("\033[91m {}\033[00m" .format(f"Dados que faltam ser enviados -> {self.data}"))
-            #     if len(self.data):
-            #         self.enviar(self.data)
+            #     print("\033[91m {}\033[00m" .format(f"Dados que faltam ser enviados -> {self.remaining_data}"))
+            #     if len(self.remaining_data):
+            #         self.enviar(self.remaining_data)
             
             return
         
         print("\033[91m {}\033[00m" .format("Segmento reconhecido"))
+        print("\033[91m {}\033[00m" .format("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
 
         self.ack_no = new_ack_no = seq_no + len(payload)
         self.seq_no = new_seq_no = ack_no
@@ -242,7 +246,7 @@ class Conexao:
         # if dados:
         #     buffer = dados
         # else:
-        #     buffer = self.data
+        #     buffer = self.remaining_data
 
         buffer = dados
         
@@ -260,8 +264,8 @@ class Conexao:
             payload = buffer[:MSS]
             buffer = buffer[MSS:]
             
-            # self.data[:] = buffer[:]
-            # print("\033[95m {}\033[00m" .format(f"Buffer salvo {self.data}"))
+            # self.remaining_data[:] = buffer[:]
+            # print("\033[95m {}\033[00m" .format(f"Buffer salvo {self.remaining_data}"))
 
             header = make_header(src_port, dst_port, self.seq_no, self.ack_no, FLAGS_ACK)
             segment = fix_checksum(header + payload, src_addr, dst_addr)
@@ -281,9 +285,9 @@ class Conexao:
 
         self.window_occupation += self.cwnd
         # Fim do loop
-        self.data = bytearray()
-        self.data.extend(buffer)
-        # print("\033[95m {}\033[00m" .format(f"Buffer salvo {self.data}"))
+        self.remaining_data = bytearray()
+        self.remaining_data.extend(buffer)
+        # print("\033[95m {}\033[00m" .format(f"Buffer salvo {self.remaining_data}"))
 
 
     def timeout(self):
